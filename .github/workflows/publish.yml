@@ -45,7 +45,18 @@ jobs:
 
       # Downloads the bottle artifacts the CI run attached to the pull request,
       # cherry-picks its commits, writes the `bottle do` block, and uploads the
-      # bottle files to the release named by `--root-url`.
+      # bottle files.
+      #
+      # No `--root-url`: it would be honoured for the upload but not for the
+      # formula. `brew bottle --merge` takes the root URL from the bottle JSON
+      # (`dev-cmd/bottle.rb`, `bottle.root_url bottle_hash["bottle"]["root_url"]`)
+      # and ignores the flag, while `pr-upload` rewrites the hash it uploads
+      # with. Passing it therefore writes one URL into the formula and uploads
+      # to another, leaving the recorded bottles at addresses that hold nothing.
+      #
+      # Left alone, both sides use what `brew test-bot` recorded: a release per
+      # version, `<repo>/releases/download/<formula>-<version>`. It does not
+      # need to exist beforehand -- `GitHubReleases#upload_bottles` creates it.
       - name: Pull bottles from the pull request
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -54,7 +65,6 @@ jobs:
           brew pr-pull \
             --debug \
             --tap="$GITHUB_REPOSITORY_OWNER/tap" \
-            --root-url="https://github.com/$GITHUB_REPOSITORY/releases/download/bottles" \
             "$PR"
 
       # The remote is named explicitly rather than trusting whatever the tap

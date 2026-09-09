@@ -26,7 +26,8 @@ brew install h1994st/tap/rllvm
 ## Bottles
 
 Bottles are built by [CI](.github/workflows/tests.yml) on every pull request and
-[published](.github/workflows/publish.yml) to a release in this repository.
+[published](.github/workflows/publish.yml) to a release per version, named
+`<formula>-<version>`.
 Without one for your platform, Homebrew builds from source, which needs a Rust
 toolchain and takes a few minutes.
 
