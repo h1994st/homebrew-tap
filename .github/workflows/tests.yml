@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  test-bot:
+    strategy:
+      # One platform failing should not hide the results for the others.
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-14, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+
+      - name: Cache Homebrew bundler gems
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+
+      - run: brew test-bot --only-cleanup-before
+
+      - run: brew test-bot --only-setup
+
+      - run: brew test-bot --only-tap-syntax
+
+      # Builds each changed formula, runs its `test do` block, and produces a
+      # bottle. Pull requests only: a push to `main` has already been tested as
+      # the pull request that produced it.
+      - run: brew test-bot --only-formulae
+        if: github.event_name == 'pull_request'
+
+      - name: Upload bottles
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v6
+        with:
+          # Underscore, not hyphen: `brew pr-pull` looks for `bottles{,_*}`.
+          name: bottles_${{ matrix.os }}
+          path: "*.bottle.*"
+          if-no-files-found: ignore

@@ -1,0 +1,72 @@
+name: Publish bottles
+
+# Bottles are built by the CI run on a pull request and uploaded there as
+# artifacts. This takes those artifacts, writes the `bottle do` block into the
+# formula, attaches the bottle files to a release in this repository, pushes to
+# `main` and closes the pull request.
+#
+# The pull request is not merged first: `brew pr-pull` does the merging itself,
+# so it has to still be open when this runs.
+on:
+  # Label a green pull request `pr-pull` to publish it. `pull_request_target`
+  # runs the workflow from `main` with a write token, which is what lets it
+  # push -- the pull request's own code is never executed here, only its
+  # commits cherry-picked and its bottle artifacts downloaded.
+  pull_request_target:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Number of the pull request whose bottles to publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'pr-pull'
+    runs-on: ubuntu-24.04
+    env:
+      PR: ${{ inputs.pull_request || github.event.pull_request.number }}
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+
+      - name: Configure git identity
+        uses: Homebrew/actions/git-user-config@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+
+      - name: Tap this repository
+        run: brew tap "$GITHUB_REPOSITORY_OWNER/tap"
+
+      # Downloads the bottle artifacts the CI run attached to the pull request,
+      # cherry-picks its commits, writes the `bottle do` block, and uploads the
+      # bottle files to the release named by `--root-url`.
+      - name: Pull bottles from the pull request
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          brew pr-pull \
+            --debug \
+            --tap="$GITHUB_REPOSITORY_OWNER/tap" \
+            --root-url="https://github.com/$GITHUB_REPOSITORY/releases/download/bottles" \
+            "$PR"
+
+      # Pushed through an explicit authenticated URL rather than whatever remote
+      # the tap clone happens to carry: how it was cloned is not this workflow's
+      # to assume, and a push that cannot authenticate would fail after the
+      # bottles are already uploaded.
+      - name: Push the bottle commit
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          tap_dir="$(brew --repo "$GITHUB_REPOSITORY_OWNER/tap")"
+          git -C "$tap_dir" push \
+            "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:main

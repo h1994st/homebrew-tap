@@ -1,0 +1,110 @@
+name: Bump formula
+
+# Opens the pull request that points a formula at a new upstream release. The
+# rest of the chain then runs on its own: CI builds and bottles the pull
+# request, and labelling it `pr-pull` publishes it.
+#
+# Dispatched by the upstream repository's release workflow, so it runs once the
+# release exists with its assets attached.
+on:
+  repository_dispatch:
+    types: [upstream-released]
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: Formula to bump
+        required: true
+        default: rllvm
+        type: string
+      tag:
+        description: Upstream release tag (e.g. v0.4.4)
+        required: true
+        type: string
+      url:
+        description: Tarball URL; defaults to the release's source.tar.gz
+        required: false
+        type: string
+      sha256_url:
+        description: URL of the tarball's checksum; defaults to <url>.sha256
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    env:
+      FORMULA: ${{ inputs.formula || github.event.client_payload.formula }}
+      TAG: ${{ inputs.tag || github.event.client_payload.tag }}
+      # Both optional. A project whose release assets are laid out differently
+      # sends its own URLs rather than being made to match a convention.
+      URL_INPUT: ${{ inputs.url || github.event.client_payload.url }}
+      SHA_URL_INPUT: ${{ inputs.sha256_url || github.event.client_payload.sha256_url }}
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+
+      - name: Configure git identity
+        uses: Homebrew/actions/git-user-config@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+
+      # The checksum has to come from upstream. Hashing the download instead
+      # would only ever agree with itself: it attests to the bytes this job
+      # happened to receive, so a tampered or truncated tarball would be
+      # recorded as correct. A published checksum is an independent statement
+      # of what the release contains, which is the whole point of the field.
+      - name: Resolve the tarball and its checksum
+        run: |
+          set -euo pipefail
+
+          url="$URL_INPUT"
+          if [ -z "$url" ]; then
+            url="https://github.com/${{ github.repository_owner }}/$FORMULA/releases/download/$TAG/source.tar.gz"
+          fi
+
+          sha_url="$SHA_URL_INPUT"
+          if [ -z "$sha_url" ]; then
+            sha_url="$url.sha256"
+          fi
+
+          sha=$(curl -fsSL "$sha_url" | awk 'NR == 1 { print $1 }') || {
+            echo "::error::No checksum at $sha_url. Publish one beside the \
+          tarball, or pass sha256_url; this workflow will not hash the download \
+          in its place." >&2
+            exit 1
+          }
+
+          # Rejects any non-hex character, not just a bad prefix: a 404 page or
+          # an error string would otherwise reach the formula as a checksum.
+          case "$sha" in
+            "" | *[!0-9a-f]*)
+              echo "::error::$sha_url did not yield a hex digest: '$sha'" >&2
+              exit 1
+              ;;
+          esac
+
+          [ "${#sha}" -eq 64 ] || {
+            echo "::error::$sha_url gave a ${#sha}-character digest, not 64" >&2
+            exit 1
+          }
+
+          echo "checksum read from $sha_url"
+
+          echo "URL=$url" >> "$GITHUB_ENV"
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+
+      # A personal access token, not GITHUB_TOKEN: a pull request opened with
+      # GITHUB_TOKEN does not trigger `pull_request` workflows, so CI would
+      # never run and no bottles would ever be built.
+      - name: Open the bump pull request
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          brew tap "${{ github.repository_owner }}/tap"
+          brew bump-formula-pr \
+            --no-fork \
+            --no-browse \
+            --url="$URL" \
+            --sha256="$SHA" \
+            "${{ github.repository_owner }}/tap/$FORMULA"
