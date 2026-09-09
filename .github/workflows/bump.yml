@@ -43,6 +43,8 @@ jobs:
       URL_INPUT: ${{ inputs.url || github.event.client_payload.url }}
       SHA_URL_INPUT: ${{ inputs.sha256_url || github.event.client_payload.sha256_url }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
 
@@ -94,10 +96,26 @@ jobs:
           echo "URL=$url" >> "$GITHUB_ENV"
           echo "SHA=$sha" >> "$GITHUB_ENV"
 
+      # A re-dispatch of a version already in the tap is not a failure worth a
+      # red run: `brew bump-formula-pr` refuses it, and the refusal is the
+      # correct outcome, not a problem to look into.
+      - name: Skip a version the tap already has
+        run: |
+          set -euo pipefail
+          current=$(grep -oE 'releases/download/v?[0-9]+\.[0-9]+\.[0-9]+/' \
+            "Formula/$FORMULA.rb" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+          wanted="${TAG#v}"
+
+          if [ -n "$current" ] && [ "$current" = "$wanted" ]; then
+            echo "::notice::$FORMULA is already at $wanted; nothing to bump."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
       # A personal access token, not GITHUB_TOKEN: a pull request opened with
       # GITHUB_TOKEN does not trigger `pull_request` workflows, so CI would
       # never run and no bottles would ever be built.
       - name: Open the bump pull request
+        if: env.SKIP != '1'
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
