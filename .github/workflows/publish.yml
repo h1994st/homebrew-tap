@@ -57,16 +57,21 @@ jobs:
             --root-url="https://github.com/$GITHUB_REPOSITORY/releases/download/bottles" \
             "$PR"
 
-      # Pushed through an explicit authenticated URL rather than whatever remote
-      # the tap clone happens to carry: how it was cloned is not this workflow's
-      # to assume, and a push that cannot authenticate would fail after the
-      # bottles are already uploaded.
+      # The remote is named explicitly rather than trusting whatever the tap
+      # clone carries -- how it was cloned is not this workflow's to assume, and
+      # a push that cannot authenticate would fail after the bottles are already
+      # uploaded.
+      #
+      # Authentication goes through `gh` as git's credential helper, so the
+      # token stays in the environment. In a URL it would reach the process list
+      # and any error message git prints, leaving Actions' log masking as the
+      # only thing between it and the run log -- and masking only holds while
+      # the value appears verbatim.
       - name: Push the bottle commit
         env:
-          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -euo pipefail
+          gh auth setup-git
           tap_dir="$(brew --repo "$GITHUB_REPOSITORY_OWNER/tap")"
-          git -C "$tap_dir" push \
-            "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-            HEAD:main
+          git -C "$tap_dir" push "https://github.com/${GITHUB_REPOSITORY}.git" HEAD:main
