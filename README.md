@@ -27,7 +27,8 @@ brew install h1994st/tap/rllvm
 
 Bottles are built by [CI](.github/workflows/tests.yml) on every pull request and
 [published](.github/workflows/publish.yml) to a release per version, named
-`<formula>-<version>`.
+`<formula>-<version>`. A bump pull request that passes CI publishes itself, so
+do not merge one by hand -- `brew pr-pull` merges it as part of publishing.
 Without one for your platform, Homebrew builds from source, which needs a Rust
 toolchain and takes a few minutes.
 

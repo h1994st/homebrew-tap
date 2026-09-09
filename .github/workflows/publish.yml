@@ -6,14 +6,16 @@ name: Publish bottles
 # `main` and closes the pull request.
 #
 # The pull request is not merged first: `brew pr-pull` does the merging itself,
-# so it has to still be open when this runs.
+# so it has to still be open when this runs -- which is why nothing else should
+# merge a bump pull request.
 on:
-  # Label a green pull request `pr-pull` to publish it. `pull_request_target`
-  # runs the workflow from `main` with a write token, which is what lets it
-  # push -- the pull request's own code is never executed here, only its
-  # commits cherry-picked and its bottle artifacts downloaded.
-  pull_request_target:
-    types: [labeled]
+  # A bump pull request whose CI passed is published without further asking.
+  # `workflow_run` runs this from `main` with a write token, and the pull
+  # request's own code is never executed here -- only its commits cherry-picked
+  # and its bottle artifacts downloaded.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
     inputs:
       pull_request:
@@ -29,18 +31,51 @@ jobs:
   publish:
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event.label.name == 'pr-pull'
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request' &&
+       startsWith(github.event.workflow_run.head_branch, 'bump-') &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     env:
-      PR: ${{ inputs.pull_request || github.event.pull_request.number }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      DISPATCHED_PR: ${{ inputs.pull_request }}
     steps:
+      # `workflow_run` reports the branch, not the pull request. Restricting it
+      # to a `bump-` branch in this repository -- rather than any pull request
+      # that goes green -- keeps a fork, or a hand-written change to these
+      # workflows, from publishing itself.
+      - name: Find the pull request to publish
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$DISPATCHED_PR" ]; then
+            echo "PR=$DISPATCHED_PR" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --head "$BRANCH" --json number --jq '.[0].number // empty')
+
+          if [ -z "$pr" ]; then
+            echo "::notice::No open pull request for $BRANCH; nothing to publish."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "PR=$pr" >> "$GITHUB_ENV"
+
       - name: Set up Homebrew
+        if: env.SKIP != '1'
         uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
 
       - name: Configure git identity
+        if: env.SKIP != '1'
         uses: Homebrew/actions/git-user-config@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
 
       - name: Tap this repository
+        if: env.SKIP != '1'
         run: brew tap "$GITHUB_REPOSITORY_OWNER/tap"
 
       # Downloads the bottle artifacts the CI run attached to the pull request,
@@ -58,6 +93,7 @@ jobs:
       # version, `<repo>/releases/download/<formula>-<version>`. It does not
       # need to exist beforehand -- `GitHubReleases#upload_bottles` creates it.
       - name: Pull bottles from the pull request
+        if: env.SKIP != '1'
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -78,6 +114,7 @@ jobs:
       # only thing between it and the run log -- and masking only holds while
       # the value appears verbatim.
       - name: Push the bottle commit
+        if: env.SKIP != '1'
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
