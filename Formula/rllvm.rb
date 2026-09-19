@@ -20,7 +20,9 @@ class Rllvm < Formula
   end
 
   def install
-    system "cargo", "install", *std_cargo_args
+    # `std_cargo_args` ends in `--path .`, which is now the workspace's virtual
+    # manifest and installs nothing.
+    system "cargo", "install", *std_cargo_args(path: "crates/tools")
 
     completions = {
       "cc"          => "rllvm-cc",
@@ -28,6 +30,7 @@ class Rllvm < Formula
       "get-bc"      => "rllvm-get-bc",
       "init"        => "rllvm-init",
       "info"        => "rllvm-info",
+      "compdb"      => "rllvm-compdb",
       "rustc"       => "rllvm-rustc",
       "completions" => "rllvm-completions",
     }

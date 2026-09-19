@@ -22,6 +22,7 @@ brew install h1994st/tap/rllvm
 | Formula | Description |
 | --- | --- |
 | [`rllvm`](Formula/rllvm.rb) | Compiler wrappers for building whole-program LLVM bitcode files ([repository](https://github.com/h1994st/rllvm)) |
+| [`rllvm-query`](Formula/rllvm-query.rb) | Source-level queries over LLVM bitcode captured by rllvm ([repository](https://github.com/h1994st/rllvm)) |
 
 ## Bottles
 
