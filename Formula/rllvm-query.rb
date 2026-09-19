@@ -3,12 +3,12 @@ class RllvmQuery < Formula
   homepage "https://shengtuo.me/rllvm/"
   # rllvm-query ships on its own component tag, separate from the `rllvm`
   # formula's: dist announces one release per component. No release exists at
-  # `rllvm-query-v0.5.1` yet, so this url does not resolve and the sha256 is
-  # the one `rllvm.rb` carries for `v0.5.1` -- the same tree, since both tags
-  # name the same commit. Both are placeholders the first bump replaces, and
-  # neither has been verified against an rllvm-query tarball. Starting a
-  # version behind is deliberate: `bump.yml` skips a bump whose version already
-  # matches the url, so a 0.6.0 placeholder here would be skipped and kept.
+  # `rllvm-query-v0.5.1`, so this url does not resolve, and the sha256 is
+  # borrowed from `rllvm.rb`'s `v0.5.1` tarball: a real digest of a real tree,
+  # but not of the asset named here, which dist would pack under its own
+  # archive root and so hash differently. Both are placeholders the first bump
+  # replaces. Starting a version behind is deliberate: `bump.yml` skips a bump
+  # whose version already matches the url, so a 0.6.0 placeholder would stay.
   url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.5.1/source.tar.gz"
   sha256 "83efceab29b13492cabaad1b6adcaf62680f4ef3d3944ef92a4ecef67338023c"
   license "Apache-2.0"
@@ -39,8 +39,10 @@ class RllvmQuery < Formula
     # depend on. So the test stops at what this binary can answer alone.
 
     # The claim `depends_on "llvm"` makes: the binary reads bitcode from the
-    # major it linked, and that major is the one Homebrew installed.
-    assert_equal Formula["llvm"].version.major.to_s,
+    # major it linked, and that major is the keg on disk. The installed
+    # version, not the declared one, which `brew update` moves while the keg
+    # this binary was built against stays where it is.
+    assert_equal Formula["llvm"].any_installed_version.major.to_s,
                  shell_output("#{bin}/rllvm-query --llvm-version").split(".").first
 
     # The completion scripts `install` generates come from the same CLI
