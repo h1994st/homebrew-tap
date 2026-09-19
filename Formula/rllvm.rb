@@ -30,6 +30,7 @@ class Rllvm < Formula
       "get-bc"      => "rllvm-get-bc",
       "init"        => "rllvm-init",
       "info"        => "rllvm-info",
+      "compdb"      => "rllvm-compdb",
       "rustc"       => "rllvm-rustc",
       "completions" => "rllvm-completions",
     }
