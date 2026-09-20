@@ -9,8 +9,8 @@ class RllvmQuery < Formula
   # archive root and so hash differently. Both are placeholders the first bump
   # replaces. Starting a version behind is deliberate: `bump.yml` skips a bump
   # whose version already matches the url, so a 0.6.0 placeholder would stay.
-  url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.5.1/source.tar.gz"
-  sha256 "83efceab29b13492cabaad1b6adcaf62680f4ef3d3944ef92a4ecef67338023c"
+  url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.6.0/source.tar.gz"
+  sha256 "4874d784f40d0ca1216e0cd7d195d99f65b0d70a8347b1890f221f4df30e60e4"
   license "Apache-2.0"
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
