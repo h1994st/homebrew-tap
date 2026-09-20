@@ -21,6 +21,19 @@ class RllvmQuery < Formula
   # catalogs produced by a newer clang.
   depends_on "llvm"
 
+  # LLVM's own libraries, which `llvm-sys` links statically into this binary.
+  # `brew linkage --test` fails a library the binary links but the formula does
+  # not declare, and test-bot then discards the bottle it had already built and
+  # still exits 0 -- so the tap's CI goes green with no bottle to publish, and
+  # only `brew pr-pull` reports it. Linux reaches zlib through zlib-ng-compat
+  # and links no z3.
+  depends_on "zstd"
+  uses_from_macos "zlib"
+
+  on_macos do
+    depends_on "z3"
+  end
+
   def fetch
     system "cargo", "fetch", "--locked"
   end
