@@ -17,7 +17,7 @@ on:
         default: rllvm
         type: string
       tag:
-        description: Upstream release tag (e.g. v0.4.4)
+        description: Upstream release tag (e.g. rllvm-v0.4.4)
         required: true
         type: string
       url:
