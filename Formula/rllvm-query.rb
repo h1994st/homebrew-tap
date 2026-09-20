@@ -14,6 +14,11 @@ class RllvmQuery < Formula
   license "Apache-2.0"
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/h1994st/homebrew-tap/releases/download/rllvm-query-0.6.0"
+    sha256 cellar: :any, arm64_sequoia: "cb2cd04b29ffec24211177aeedd8a63051d96c990125ba71be270a60f8813810"
+  end
+
   depends_on "rust" => :build
   # Not build-only: this is the signal to rebuild when Homebrew's LLVM changes
   # major. rllvm-query links LLVM statically and can only read bitcode from the
