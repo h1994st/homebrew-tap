@@ -2,13 +2,7 @@ class RllvmQuery < Formula
   desc "Source-level queries over LLVM bitcode captured by rllvm"
   homepage "https://shengtuo.me/rllvm/"
   # rllvm-query ships on its own component tag, separate from the `rllvm`
-  # formula's: dist announces one release per component. No release exists at
-  # `rllvm-query-v0.5.1`, so this url does not resolve, and the sha256 is
-  # borrowed from `rllvm.rb`'s `v0.5.1` tarball: a real digest of a real tree,
-  # but not of the asset named here, which dist would pack under its own
-  # archive root and so hash differently. Both are placeholders the first bump
-  # replaces. Starting a version behind is deliberate: `bump.yml` skips a bump
-  # whose version already matches the url, so a 0.6.0 placeholder would stay.
+  # formula's: dist announces one release per component.
   url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.6.0/source.tar.gz"
   sha256 "4874d784f40d0ca1216e0cd7d195d99f65b0d70a8347b1890f221f4df30e60e4"
   license "Apache-2.0"
@@ -30,13 +24,20 @@ class RllvmQuery < Formula
   # `brew linkage --test` fails a library the binary links but the formula does
   # not declare, and test-bot then discards the bottle it had already built and
   # still exits 0 -- so the tap's CI goes green with no bottle to publish, and
-  # only `brew pr-pull` reports it. Linux reaches zlib through zlib-ng-compat
-  # and links no z3.
+  # only `brew pr-pull` reports it.
+  #
+  # The conditions mirror homebrew-core's llvm.rb, because what that formula
+  # links decides what ends up linked here. `uses_from_macos "zlib"` does not
+  # stand in for the Linux entry: linkage still reported zlib-ng-compat, and
+  # the x86_64_linux bottle was dropped for it.
   depends_on "zstd"
-  uses_from_macos "zlib"
 
-  on_macos do
+  on_system :linux, macos: :sonoma_or_newer do
     depends_on "z3"
+  end
+
+  on_linux do
+    depends_on "zlib-ng-compat"
   end
 
   def fetch
