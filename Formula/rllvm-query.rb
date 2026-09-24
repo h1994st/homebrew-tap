@@ -3,8 +3,8 @@ class RllvmQuery < Formula
   homepage "https://shengtuo.me/rllvm/"
   # rllvm-query ships on its own component tag, separate from the `rllvm`
   # formula's: dist announces one release per component.
-  url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.6.2/source.tar.gz"
-  sha256 "0e618a418bdfa78db8e48bce1cefc21cf16e24974425fb89a7e32ed52fc621b0"
+  url "https://github.com/h1994st/rllvm/releases/download/rllvm-query-v0.7.0/source.tar.gz"
+  sha256 "d7abc5a805caae6487e9a54fa2e808bf6aaa8f4e3bb488b9141497f9d628501b"
   license "Apache-2.0"
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
