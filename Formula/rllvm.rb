@@ -7,9 +7,9 @@ class Rllvm < Formula
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
   bottle do
-    root_url "https://github.com/h1994st/homebrew-tap/releases/download/rllvm-0.6.3"
-    sha256 cellar: :any_skip_relocation, arm64_sequoia: "5d03ccfe548fa8a01e4f12d8ebb0ed7f815348dcd569434601a764661d8fbdb8"
-    sha256 cellar: :any,                 x86_64_linux:  "68a981cab04320e690d561e837ade01d7c59295d53fd909eb202bcae73ea2b6f"
+    root_url "https://github.com/h1994st/homebrew-tap/releases/download/rllvm-0.6.4"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "2dbdebfe0d9f3e82998a322f1c9ffb08fbcce780899bb0e7dafaa51399f75ffc"
+    sha256 cellar: :any,                 x86_64_linux:  "5e08f57986fe08fef32c654605449b41b804e0ed6df175c78b412cd2603ac996"
   end
 
   depends_on "rust" => [:build, :test]
