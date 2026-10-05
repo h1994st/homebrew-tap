@@ -113,6 +113,12 @@ jobs:
       # and any error message git prints, leaving Actions' log masking as the
       # only thing between it and the run log -- and masking only holds while
       # the value appears verbatim.
+      #
+      # Rebased first because a release bumps both formulae at once, and their
+      # publish runs overlap: whichever pushes second was tapped before the
+      # other's bottle commit existed. The two touch different formula files, so
+      # the rebase is clean. Not a `concurrency` group: it keeps only one
+      # pending run and cancels the rest, which would drop a third bump.
       - name: Push the bottle commit
         if: env.SKIP != '1'
         env:
@@ -121,4 +127,6 @@ jobs:
           set -euo pipefail
           gh auth setup-git
           tap_dir="$(brew --repo "$GITHUB_REPOSITORY_OWNER/tap")"
-          git -C "$tap_dir" push "https://github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          remote="https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$tap_dir" pull --rebase "$remote" main
+          git -C "$tap_dir" push "$remote" HEAD:main
