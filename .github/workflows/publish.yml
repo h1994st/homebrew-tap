@@ -130,3 +130,26 @@ jobs:
           remote="https://github.com/${GITHUB_REPOSITORY}.git"
           git -C "$tap_dir" pull --rebase "$remote" main
           git -C "$tap_dir" push "$remote" HEAD:main
+
+      # `brew pr-upload` creates the release with no body before the bottle
+      # commit exists, so GitHub tags whatever `main` was then and shows that
+      # commit's message: the previous formula's bottles. An explicit body
+      # names this run's bottle commit instead. The release is the one the
+      # formula's `root_url` names, which is where the bottles were uploaded.
+      - name: Describe the release
+        if: env.SKIP != '1'
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          tap_dir="$(brew --repo "$GITHUB_REPOSITORY_OWNER/tap")"
+          subject="$(git -C "$tap_dir" log -1 --format=%s)"
+          tags="$(git -C "$tap_dir" show --format= HEAD -- Formula \
+            | sed -n 's|^+ *root_url ".*/releases/download/\([^"]*\)"$|\1|p')"
+          if [ -z "$tags" ]; then
+            echo "::error::HEAD adds no bottle root_url"
+            exit 1
+          fi
+          for tag in $tags; do
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --notes "$subject"
+          done
