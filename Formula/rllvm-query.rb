@@ -9,9 +9,9 @@ class RllvmQuery < Formula
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
   bottle do
-    root_url "https://github.com/h1994st/homebrew-tap/releases/download/rllvm-query-0.7.2"
-    sha256 cellar: :any, arm64_sequoia: "68c75691025d55cff90adf89d428fe4b714e265a3b54c10d5425672d2f28d41f"
-    sha256 cellar: :any, x86_64_linux:  "da8852ad69add370c079b09f65c12633555426605de9c256da05dd081c57f794"
+    root_url "https://github.com/h1994st/homebrew-tap/releases/download/rllvm-query-0.8.0"
+    sha256 cellar: :any, arm64_sequoia: "6f2452b6ea29d802ccd922d996b3f0e1f4da3545f2faa8ebad35d8c5fcce9a81"
+    sha256 cellar: :any, x86_64_linux:  "f1f7b10404d025890cd4a60fece7903cad51703399e5fb6436dc22fdd2b6dbbc"
   end
 
   depends_on "rust" => :build
