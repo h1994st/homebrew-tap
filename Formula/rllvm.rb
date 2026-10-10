@@ -1,8 +1,8 @@
 class Rllvm < Formula
   desc "Compiler wrappers for building whole-program LLVM bitcode files"
   homepage "https://shengtuo.me/rllvm/"
-  url "https://github.com/h1994st/rllvm/releases/download/rllvm-v0.7.0/source.tar.gz"
-  sha256 "8db4a0a9f539ce77c4a39843f792f8450e8916321a5adca6e56f3f8a378beec5"
+  url "https://github.com/h1994st/rllvm/releases/download/rllvm-v0.7.1/source.tar.gz"
+  sha256 "3e5ec8503eed5cb28308d023cbdaf43f48628c02e28b56b3e96ee7075a9e7fc6"
   license "Apache-2.0"
   head "https://github.com/h1994st/rllvm.git", branch: "main"
 
